@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  role            String    @default("EMPLOYEE")
+  isActive        Boolean   @default(true)
+  mustChangePassword Boolean @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  employee        Employee?
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+}
+
+model Employee {
+  id              String    @id @default(cuid())
+  employeeId      String    @unique
+  userId          String    @unique
+  firstName       String
+  lastName        String
+  email           String
+  phone           String    @default("")
+  dateOfBirth     DateTime?
+  gender          String    @default("")
+  address         String    @default("")
+  city            String    @default("")
+  state           String    @default("")
+  country         String    @default("India")
+  zipCode         String    @default("")
+  avatar          String    @default("")
+  departmentId    String?
+  designationId   String?
+  managerId       String?
+  dateOfJoining   DateTime  @default(now())
+  dateOfExit      DateTime?
+  employmentType  String    @default("FULL_TIME")
+  status          String    @default("ACTIVE")
+  bankName        String    @default("")
+  bankAccount     String    @default("")
+  ifscCode        String    @default("")
+  panNumber       String    @default("")
+  aadharNumber    String    @default("")
+  uanNumber       String    @default("")
+  pfNumber        String    @default("")
+  esiNumber       String    @default("")
+  emergencyName   String    @default("")
+  emergencyPhone  String    @default("")
+  emergencyRelation String  @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id])
+  department      Department? @relation(fields: [departmentId], references: [id])
+  designation     Designation? @relation(fields: [designationId], references: [id])
+  manager         Employee?  @relation("ManagerRelation", fields: [managerId], references: [id])
+  directReports   Employee[] @relation("ManagerRelation")
+  attendance      Attendance[]
+  leaveRequests   LeaveRequest[]
+  leaveBalances   LeaveBalance[]
+  salaryStructure SalaryStructure?
+  payrollRecords  PayrollRecord[]
+  documents       Document[]
+  warnings        Warning[]
+  onboarding      OnboardingTask[]
+  exitProcess     ExitProcess?
+}
+
+model Department {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  code        String     @unique
+  description String     @default("")
+  headId      String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+}
+
+model Designation {
+  id          String     @id @default(cuid())
+  title       String     @unique
+  level       Int        @default(1)
+  description String     @default("")
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  employeeId  String
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  status      String    @default("PRESENT")
+  workHours   Float     @default(0)
+  overtime    Float     @default(0)
+  lateMinutes Int       @default(0)
+  source      String    @default("MANUAL")
+  location    String    @default("")
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date])
+}
+
+model LeaveType {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  code            String    @unique
+  daysPerYear     Int       @default(12)
+  carryForward    Boolean   @default(false)
+  maxCarryForward Int       @default(0)
+  isPaid          Boolean   @default(true)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  leaveRequests   LeaveRequest[]
+  leaveBalances   LeaveBalance[]
+}
+
+model LeaveRequest {
+  id          String    @id @default(cuid())
+  employeeId  String
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  days        Float     @default(1)
+  reason      String    @default("")
+  status      String    @default("PENDING")
+  approvedBy  String?
+  approvedAt  DateTime?
+  remarks     String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+}
+
+model LeaveBalance {
+  id          String    @id @default(cuid())
+  employeeId  String
+  leaveTypeId String
+  year        Int
+  allocated   Float     @default(0)
+  used        Float     @default(0)
+  remaining   Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@unique([employeeId, leaveTypeId, year])
+}
+
+model SalaryStructure {
+  id              String    @id @default(cuid())
+  employeeId      String    @unique
+  basicSalary     Float     @default(0)
+  hra             Float     @default(0)
+  conveyance      Float     @default(0)
+  medicalAllowance Float    @default(0)
+  specialAllowance Float    @default(0)
+  otherAllowance  Float     @default(0)
+  pfContribution  Float     @default(0)
+  esiContribution Float     @default(0)
+  professionalTax Float     @default(0)
+  tds             Float     @default(0)
+  otherDeduction  Float     @default(0)
+  grossSalary     Float     @default(0)
+  netSalary       Float     @default(0)
+  ctc             Float     @default(0)
+  effectiveFrom   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model PayrollRecord {
+  id              String    @id @default(cuid())
+  employeeId      String
+  month           Int
+  year            Int
+  workingDays     Int       @default(0)
+  presentDays     Int       @default(0)
+  leaveDays       Float     @default(0)
+  basicSalary     Float     @default(0)
+  hra             Float     @default(0)
+  conveyance      Float     @default(0)
+  medicalAllowance Float    @default(0)
+  specialAllowance Float    @default(0)
+  otherAllowance  Float     @default(0)
+  grossEarnings   Float     @default(0)
+  pfDeduction     Float     @default(0)
+  esiDeduction    Float     @default(0)
+  professionalTax Float     @default(0)
+  tds             Float     @default(0)
+  otherDeduction  Float     @default(0)
+  totalDeductions Float     @default(0)
+  netSalary       Float     @default(0)
+  status          String    @default("DRAFT")
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, month, year])
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  employeeId  String?
+  name        String
+  type        String    @default("GENERAL")
+  category    String    @default("OTHER")
+  filePath    String    @default("")
+  fileSize    Int       @default(0)
+  mimeType    String    @default("")
+  content     String    @default("")
+  isTemplate  Boolean   @default(false)
+  version     Int       @default(1)
+  uploadedBy  String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+}
+
+model Warning {
+  id          String    @id @default(cuid())
+  employeeId  String
+  type        String    @default("WARNING")
+  subject     String
+  description String    @default("")
+  issuedBy    String    @default("")
+  issuedAt    DateTime  @default(now())
+  status      String    @default("ISSUED")
+  response    String    @default("")
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model OnboardingTask {
+  id          String    @id @default(cuid())
+  employeeId  String
+  title       String
+  description String    @default("")
+  category    String    @default("GENERAL")
+  isCompleted Boolean   @default(false)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model ExitProcess {
+  id              String    @id @default(cuid())
+  employeeId      String    @unique
+  type            String    @default("RESIGNATION")
+  reason          String    @default("")
+  lastWorkingDay  DateTime?
+  noticePeriodDays Int      @default(30)
+  exitInterviewDone Boolean @default(false)
+  clearanceStatus String    @default("PENDING")
+  fnfAmount       Float     @default(0)
+  fnfStatus       String    @default("PENDING")
+  status          String    @default("INITIATED")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  employee        Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String    @default("INFO")
+  isRead      Boolean   @default(false)
+  link        String    @default("")
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String    @default("")
+  details     String    @default("")
+  ipAddress   String    @default("")
+  createdAt   DateTime  @default(now())
+
+  user        User?     @relation(fields: [userId], references: [id])
+}
+
+model CompanySettings {
+  id              String    @id @default(cuid())
+  companyName     String    @default("RudraX HRMS")
+  tagline         String    @default("A Product by Lalit Pandit")
+  email           String    @default("")
+  phone           String    @default("")
+  address         String    @default("")
+  website         String    @default("")
+  logoUrl         String    @default("")
+  primaryColor    String    @default("#7c3aed")
+  workingDaysPerMonth Int   @default(22)
+  workingHoursPerDay Float  @default(8)
+  financialYearStart Int    @default(4)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
