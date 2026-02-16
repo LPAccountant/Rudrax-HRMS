@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { UserPlus, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, Trash2, KeyRound } from "lucide-react";
 import { getInitials, formatDate } from "@/lib/utils";
 
 interface Employee {
@@ -24,6 +24,8 @@ interface Employee {
   status: string;
   employmentType: string;
   dateOfJoining: string;
+  bankAccount?: string;
+  ifscCode?: string;
   department: { id: string; name: string } | null;
   designation: { id: string; title: string } | null;
   user: { email: string; role: string; isActive: boolean };
@@ -40,12 +42,15 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [showView, setShowView] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", phone: "", gender: "", departmentId: "", designationId: "", employmentType: "", status: "", bankAccount: "", ifscCode: "" });
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", gender: "", departmentId: "", designationId: "", employmentType: "FULL_TIME", role: "EMPLOYEE", dateOfJoining: new Date().toISOString().split("T")[0] });
+  const [resetMsg, setResetMsg] = useState("");
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(`/api/employees?search=${search}`);
+      const res = await fetch(`/api/employees?search=${search}&limit=200`);
       if (res.ok) { const data = await res.json(); setEmployees(data.employees); }
     } catch (error) { console.error("Failed to fetch employees:", error); }
     finally { setLoading(false); }
@@ -71,12 +76,48 @@ export default function EmployeesPage() {
     } catch (error) { console.error("Failed to add employee:", error); }
   };
 
+  const handleEdit = async () => {
+    if (!selectedEmployee) return;
+    try {
+      const res = await fetch(`/api/employees/${selectedEmployee.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) { setShowEdit(false); fetchEmployees(); }
+    } catch (error) { console.error("Failed to update employee:", error); }
+  };
+
+  const handleResetPassword = async (empId: string) => {
+    if (!confirm("Reset password to Welcome@123? Employee will need to change it on next login.")) return;
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId: empId }),
+      });
+      const data = await res.json();
+      setResetMsg(res.ok ? data.message : data.error);
+      setTimeout(() => setResetMsg(""), 3000);
+    } catch { setResetMsg("Error resetting password"); }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to deactivate this employee?")) return;
     try {
       const res = await fetch(`/api/employees/${id}`, { method: "DELETE" });
       if (res.ok) fetchEmployees();
     } catch (error) { console.error("Failed to delete employee:", error); }
+  };
+
+  const openEdit = (emp: Employee) => {
+    setSelectedEmployee(emp);
+    setEditForm({
+      firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone || "",
+      gender: emp.gender || "", departmentId: emp.department?.id || "", designationId: emp.designation?.id || "",
+      employmentType: emp.employmentType, status: emp.status, bankAccount: emp.bankAccount || "", ifscCode: emp.ifscCode || "",
+    });
+    setShowEdit(true);
   };
 
   const statusColor = (s: string) => {
@@ -88,17 +129,19 @@ export default function EmployeesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Employees</h1>
-          <p className="text-sm text-muted-foreground">Manage employee profiles and records</p>
+          <p className="text-sm text-muted-foreground">Manage employee profiles and records ({employees.length} total)</p>
         </div>
         <Button onClick={() => setShowAdd(true)}><UserPlus className="mr-2 h-4 w-4" />Add Employee</Button>
       </div>
+
+      {resetMsg && <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-3 text-sm text-green-700 dark:text-green-400">{resetMsg}</div>}
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              <Input placeholder="Search by name, ID, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
           </div>
         </CardHeader>
@@ -114,13 +157,12 @@ export default function EmployeesPage() {
                   <TableHead>Department</TableHead>
                   <TableHead>Designation</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {employees.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No employees found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No employees found</TableCell></TableRow>
                 ) : (
                   employees.map((emp) => (
                     <TableRow key={emp.id}>
@@ -135,13 +177,14 @@ export default function EmployeesPage() {
                       </TableCell>
                       <TableCell><Badge variant="outline">{emp.employeeId}</Badge></TableCell>
                       <TableCell>{emp.department?.name || "-"}</TableCell>
-                      <TableCell>{emp.designation?.title || "-"}</TableCell>
+                      <TableCell className="max-w-[150px] truncate">{emp.designation?.title || "-"}</TableCell>
                       <TableCell><Badge variant={statusColor(emp.status)}>{emp.status}</Badge></TableCell>
-                      <TableCell>{formatDate(emp.dateOfJoining)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => { setSelectedEmployee(emp); setShowView(true); }}><Eye className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(emp.id)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="View" onClick={() => { setSelectedEmployee(emp); setShowView(true); }}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Edit" onClick={() => openEdit(emp)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Reset Password" onClick={() => handleResetPassword(emp.id)}><KeyRound className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Deactivate" className="text-destructive" onClick={() => handleDelete(emp.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -225,6 +268,78 @@ export default function EmployeesPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Employee - {selectedEmployee?.firstName} {selectedEmployee?.lastName} ({selectedEmployee?.employeeId})</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>First Name</Label><Input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Last Name</Label><Input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Phone</Label><Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Gender</Label>
+                <Select value={editForm.gender} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select value={editForm.departmentId} onValueChange={(v) => setEditForm({ ...editForm, departmentId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                  <SelectContent>{departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Designation</Label>
+                <Select value={editForm.designationId} onValueChange={(v) => setEditForm({ ...editForm, designationId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                  <SelectContent>{designations.map((d) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                    <SelectItem value="TERMINATED">Terminated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Employment Type</Label>
+                <Select value={editForm.employmentType} onValueChange={(v) => setEditForm({ ...editForm, employmentType: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FULL_TIME">Full Time</SelectItem>
+                    <SelectItem value="PART_TIME">Part Time</SelectItem>
+                    <SelectItem value="CONTRACT">Contract</SelectItem>
+                    <SelectItem value="INTERN">Intern</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Bank Account</Label><Input value={editForm.bankAccount} onChange={(e) => setEditForm({ ...editForm, bankAccount: e.target.value })} /></div>
+              <div className="space-y-2"><Label>IFSC Code</Label><Input value={editForm.ifscCode} onChange={(e) => setEditForm({ ...editForm, ifscCode: e.target.value })} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEdit(false)}>Cancel</Button>
+            <Button onClick={handleEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showView} onOpenChange={setShowView}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Employee Details</DialogTitle></DialogHeader>
@@ -245,6 +360,16 @@ export default function EmployeesPage() {
                 <div><span className="text-muted-foreground">Designation:</span><p className="font-medium">{selectedEmployee.designation?.title || "-"}</p></div>
                 <div><span className="text-muted-foreground">Joined:</span><p className="font-medium">{formatDate(selectedEmployee.dateOfJoining)}</p></div>
                 <div><span className="text-muted-foreground">Type:</span><p className="font-medium">{selectedEmployee.employmentType.replace("_", " ")}</p></div>
+                <div><span className="text-muted-foreground">Login ID:</span><p className="font-medium">{selectedEmployee.employeeId}</p></div>
+                <div><span className="text-muted-foreground">Login Email:</span><p className="font-medium">{selectedEmployee.user?.email || "-"}</p></div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" variant="outline" onClick={() => { setShowView(false); openEdit(selectedEmployee); }}>
+                  <Edit className="mr-2 h-4 w-4" />Edit Details
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleResetPassword(selectedEmployee.id)}>
+                  <KeyRound className="mr-2 h-4 w-4" />Reset Password
+                </Button>
               </div>
             </div>
           )}

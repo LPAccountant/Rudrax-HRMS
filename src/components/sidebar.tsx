@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Clock, CalendarDays, DollarSign,
   FileText, Bell, AlertTriangle, LogOut, Settings, Shield,
-  ChevronLeft, ChevronRight, Building2, Briefcase
+  ChevronLeft, ChevronRight, Building2, Briefcase, ScrollText
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +22,7 @@ const menuItems = [
   { href: "/dashboard/leave", label: "Leave", icon: CalendarDays, roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"] },
   { href: "/dashboard/payroll", label: "Payroll", icon: DollarSign, roles: ["ADMIN", "HR"] },
   { href: "/dashboard/documents", label: "Documents", icon: FileText, roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"] },
+  { href: "/dashboard/letters", label: "Letters", icon: ScrollText, roles: ["ADMIN", "HR"] },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"] },
   { href: "/dashboard/warnings", label: "Warnings", icon: AlertTriangle, roles: ["ADMIN", "HR", "MANAGER"] },
   { href: "/dashboard/onboarding", label: "Onboarding", icon: Briefcase, roles: ["ADMIN", "HR"] },
@@ -46,19 +47,15 @@ export function Sidebar({ userRole }: SidebarProps) {
       <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">R</span>
-            </div>
+            <img src="/company-logo.jpeg" alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
             <div>
               <h1 className="text-sm font-bold text-primary">RudraX HRMS</h1>
-              <p className="text-[10px] text-muted-foreground">by Lalit Pandit</p>
+              <p className="text-[10px] text-muted-foreground">News India 24x7</p>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">R</span>
-          </div>
+          <img src="/company-logo.jpeg" alt="Logo" className="mx-auto h-8 w-8 rounded-lg object-cover" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -93,8 +90,8 @@ export function Sidebar({ userRole }: SidebarProps) {
       <div className="border-t border-sidebar-border p-2">
         {!collapsed && (
           <div className="rounded-md bg-primary/10 p-3">
-            <p className="text-xs font-medium text-primary">RudraX HRMS v1.0</p>
-            <p className="text-[10px] text-muted-foreground">Enterprise Edition</p>
+            <p className="text-xs font-medium text-primary">Omega Tv Media Pvt Ltd</p>
+            <p className="text-[10px] text-muted-foreground">RudraX HRMS v1.0</p>
           </div>
         )}
       </div>
