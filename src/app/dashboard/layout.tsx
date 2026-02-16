@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const res = await fetch("/api/auth/me");
         if (!res.ok) {
-          document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+          await fetch("/api/auth/logout", { method: "POST" });
           window.location.href = "/login";
           return;
         }
@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         setUser(data);
       } catch {
-        document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
         window.location.href = "/login";
       } finally {
         setLoading(false);
