@@ -28,17 +28,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const res = await fetch("/api/auth/me");
         if (!res.ok) {
-          router.push("/login");
+          document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+          window.location.href = "/login";
           return;
         }
         const data = await res.json();
         if (data.mustChangePassword) {
-          router.push("/change-password");
+          window.location.href = "/change-password";
           return;
         }
         setUser(data);
       } catch {
-        router.push("/login");
+        document.cookie = "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+        window.location.href = "/login";
       } finally {
         setLoading(false);
       }
