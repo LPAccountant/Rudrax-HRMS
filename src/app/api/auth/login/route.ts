@@ -7,10 +7,20 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json({ error: "Email/Employee ID and password are required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email }, include: { employee: true } });
+    let user = await prisma.user.findUnique({ where: { email }, include: { employee: true } });
+
+    if (!user) {
+      const employee = await prisma.employee.findFirst({
+        where: { employeeId: email.toUpperCase() },
+        include: { user: true },
+      });
+      if (employee) {
+        user = await prisma.user.findUnique({ where: { id: employee.userId }, include: { employee: true } });
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });

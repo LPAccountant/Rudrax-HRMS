@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,18 +51,18 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-violet-950 p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <Shield className="h-8 w-8 text-primary-foreground" />
+        <div className="flex flex-col items-center space-y-3 text-center">
+          <img src="/company-logo.jpeg" alt="News India 24x7" className="h-20 w-auto rounded-lg shadow-lg" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary">RudraX HRMS</h1>
+            <p className="text-sm text-muted-foreground">Omega Tv Media Pvt Ltd | News India 24x7</p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">RudraX HRMS</h1>
-          <p className="text-sm text-muted-foreground">A Product by Lalit Pandit</p>
         </div>
 
         <Card className="shadow-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access the platform</CardDescription>
+            <CardDescription>Use your Employee ID or Email to login</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -72,11 +72,11 @@ export default function LoginPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Employee ID / Email</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="you@company.com"
+                  type="text"
+                  placeholder="e.g. NI001 or you@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -110,7 +110,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground">
-          Powered by RudraX HRMS &copy; {new Date().getFullYear()} | All rights reserved
+          Powered by RudraX HRMS &copy; {new Date().getFullYear()} | Omega Tv Media Pvt Ltd
         </p>
       </div>
     </div>
